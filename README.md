@@ -1,176 +1,282 @@
 # Leaflet.Geodesic
+[![Build Status](https://travis-ci.org/henrythasler/Leaflet.Geodesic.svg?branch=master)](https://travis-ci.org/henrythasler/Leaflet.Geodesic) [![npm](https://img.shields.io/npm/v/leaflet.geodesic)](https://www.npmjs.com/package/leaflet.geodesic) [![Coverage Status](https://coveralls.io/repos/github/henrythasler/Leaflet.Geodesic/badge.svg?branch=master)](https://coveralls.io/github/henrythasler/Leaflet.Geodesic?branch=master) [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=henrythasler_Leaflet.Geodesic&metric=alert_status)](https://sonarcloud.io/dashboard?id=henrythasler_Leaflet.Geodesic)
 
-Add-on for [Leaflet](http://leafletjs.com/) to draw [geodesic](http://en.wikipedia.org/wiki/Geodesics_on_an_ellipsoid) lines and great circles. A geodesic line is the shortest path between two given positions on the earth surface. Wrapping at lng=180° is handled correctly. The master branch is compatible with Leaflet v1.0.2+.
+Add-on for [Leaflet](http://leafletjs.com/) to draw [geodesic](http://en.wikipedia.org/wiki/Geodesics_on_an_ellipsoid) lines and circles. A geodesic line is the shortest path between two given positions on the earth surface. It's based on [Vincenty's formulae](https://en.wikipedia.org/wiki/Vincenty%27s_formulae) implemented by [Chris Veness](https://github.com/chrisveness/geodesy) for highest precision.
 
-[<img src="example/interactive.png" alt="Leaflet.Geodesic Screenshot" />](http://www.thasler.com/leaflet.geodesic/example/interactive.html)
+[![demo](docs/img/demo.png)](https://blog.cyclemap.link/Leaflet.Geodesic/basic-interactive.html)
 
-It is based on [geodesy](https://github.com/chrisveness/geodesy) by Chris Veness that gives extremely precise results.
+[Live Demos and Tutorials](https://blog.cyclemap.link/Leaflet.Geodesic/)
 
+[API-Documentation](https://blog.cyclemap.link/Leaflet.Geodesic/api)
 
-## Live-Demo
-- [Static Demo](http://www.thasler.com/leaflet.geodesic/example/simple.html)
-- [Interactive Demo](http://www.thasler.com/leaflet.geodesic/example/interactive.html)
-- [Interactive Demo (noWrap)](http://www.thasler.com/leaflet.geodesic/example/interactive-noWrap.html)
-- [Great Circle Demo](http://www.thasler.com/leaflet.geodesic/example/circle.html)
-- [geoJSON Demo (static)](http://www.thasler.com/leaflet.geodesic/example/geojson.html)
+## Add the plugin to your project
 
-## Usage
-Add the source to your project/html-file after `leaflet.js`:
+Leaflet.Geodesic is available via CDN. Add the following snippet to your html-file after you have [included leaflet.js](https://leafletjs.com/examples/quick-start/).
+
 ```html
-<script src="leaflet.js"></script>
-<script src="Leaflet.Geodesic.js"></script>
+<!-- Make sure you put this AFTER leaflet.js -->
+<script src="https://cdn.jsdelivr.net/npm/leaflet.geodesic"></script>
 ```
 
-Leaflet.Geodesic can be used similar to Leaflet's [Polyline](http://leafletjs.com/reference.html#polyline).
+Leaflet.Geodesic is available from [unpkg](https://unpkg.com/browse/leaflet.geodesic/), [jsDelivr](https://www.jsdelivr.com/package/npm/leaflet.geodesic) and [npmjs](https://www.npmjs.com/package/leaflet.geodesic).
 
-### Creation
+Add it in your nodejs-project with `npm i leaflet.geodesic`.
+
+## Basic usage
+
+- `L.Geodesic` draws geodesic lines between all points of a given line- or multiline-string. 
+- `L.GeodesicCircle` draws a circle with a specific radius around a given point.
+
+The Objects can be created as follows:
+
 ```JavaScript
-L.geodesic( <LatLng[][]> latlngs, <Geodesic options> options? )
+const geodesicLine = new L.Geodesic().addTo(map);   // creates a blank geodesic-line-object and adds it to the map
+const geodesicCircle = new L.GeodesicCircle().addTo(map);   // creates a blank geodesic-circle-object and adds it to the map
 ```
 
-### Options
-Geodesic has the following options:
+Alternative method:
+
+```JavaScript
+const geodesicLine = L.geodesic().addTo(map);   // lower-case, w/o new-keyword
+const geodesicCircle = L.geodesiccircle().addTo(map);   // lower-case, w/o new-keyword
+```
+
+Make sure you add the geodesic-object to the map. It won't display otherwise.
+
+Each constructor is defined as:
+```JavaScript
+Geodesic(latlngs?: L.LatLngExpression[] | L.LatLngExpression[][], options?: GeodesicOptions)
+GeodesicCircle(center?: L.LatLngExpression, options?: GeodesicOptions)
+```
+
+Both classes are extended from [L.Polyline](http://leafletjs.com/reference.html#polyline), so all methods, events and options for `L.Polyline` can be used with `L.Geodesic` and `L.GeodesicCircle` here as well.
+
+## Geodesic Lines
+
+This draws a line. The geometry (points) to use can be given during creation as:
+
+### Objects (Literals)
+
+```JavaScript
+const Berlin = {lat: 52.5, lng: 13.35};
+const LosAngeles = {lat: 33.82, lng: -118.38};
+const geodesic = new L.Geodesic([Berlin, LosAngeles]).addTo(map);
+```
+
+### LatLng-Class
+
+```JavaScript
+const Berlin = new L.LatLng(52.5, 13.35);
+const LosAngeles = new L.LatLng(33.82, -118.38);
+const geodesic = new L.Geodesic([Berlin, LosAngeles]).addTo(map);
+``` 
+
+### Tuples
+
+```JavaScript
+const Berlin = [52.5, 13.35];
+const LosAngeles = [33.82, -118.38];
+const geodesic = new L.Geodesic([Berlin, LosAngeles]).addTo(map);
+```
+
+![line](docs/img/line.png)
+
+### Line-strings
+
+Multiple consecutive points can be given as an array (linestring):
+
+```JavaScript
+const places = [
+    new L.LatLng(52.5, 13.35), // Berlin
+    new L.LatLng(33.82, -118.38), // Los Angeles
+    new L.LatLng(-33.44, -70.71), // Santiago
+    new L.LatLng(-33.94, 18.39), // Capetown
+];
+const geodesic = new L.Geodesic(places).addTo(map);
+```
+
+![linestring](docs/img/linestring.png)
+
+### Multi-line-strings
+
+Multiple independent linestrings can be defined as a 2-dimensional array of points:
+
+```JavaScript
+const places = [
+    [   // 1st line
+        new L.LatLng(52.5, 13.35), // Berlin
+        new L.LatLng(33.82, -118.38), // Los Angeles
+    ],
+    [   // 2nd line
+        new L.LatLng(-33.44, -70.71), // Santiago
+        new L.LatLng(-33.94, 18.39), // Capetown
+    ]
+];
+const geodesic = new L.Geodesic(places).addTo(map);
+```
+
+![multilinestring](docs/img/multilinestring.png)
+
+### GeoJSON-Support
+
+GeoJSON-data can be used to create geodesic lines with the `fromGeoJson()` method:
+
+```JavaScript
+const geojson = {
+    "type": "LineString",
+    "coordinates": [
+        [13.35, 52.5], [-122.33, 47.56], [18.39, -33.94], [116.39, 39.92], [13.35, 52.5]
+    ]
+};
+const geodesic = new L.Geodesic().addTo(map);
+geodesic.fromGeoJson(geojson);
+```
+
+![geojson](docs/img/geojson.png)
+
+### Updating the geometry
+
+#### Set new geometry
+
+The Geodesic-Class provides a `setLatLngs()`-Method, that can be used to update the geometry of an existing `L.Geodesic`-object:
+
+```Javascript
+const geodesic = new L.Geodesic().addTo(map);   // add empty object to the map
+
+const Berlin = new L.LatLng(52.5, 13.35);
+const LosAngeles = new L.LatLng(33.82, -118.38);
+
+geodesic.setLatLngs([Berlin, LosAngeles])   // update in-place
+```
+
+The `setLatLngs()`-Method accepts the same types (Literal, Tuple, LatLang-Class, Linstring, Multilinestring) as the L.Geodesic-constructor itself. Please refer to the section about geodesic circles below, on how to update a circle geometry.
+
+#### Delete geometry
+
+Delete the existing geometry by setting an empty array `geodesic.setLatLngs([])`.
+
+#### adding points
+
+Points can be added to existing geodesic lines with `addLatLng()`:
+
+```Javascript
+const Berlin = new L.LatLng(52.5, 13.35);
+const LosAngeles = new L.LatLng(33.82, -118.38);
+const Beijing = new L.LatLng(39.92, 116.39);
+
+const geodesic = new L.Geodesic([Berlin, LosAngeles]).addTo(map);   // add empty object to the map
+geodesic.addLatLng(Beijing)
+```
+
+The new point will always be added to the last linestring of a multiline. You can define a specific linestring to add to by reading the `points` property before and hand over a specific linestring as second parameter:
+
+```Javascript
+const Berlin = new L.LatLng(52.5, 13.35);
+const LosAngeles = new L.LatLng(33.82, -118.38);
+const Beijing = new L.LatLng(39.92, 116.39 );
+const Capetown =  new L.LatLng(-33.94, 18.39 );
+const Santiago = new L.LatLng(-33.44, -70.71);
+
+const geodesic = new L.Geodesic([[Berlin, LosAngeles], [Santiago, Capetown]]).addTo(map);
+geodesic.addLatLng(Beijing, geodesic.points[0]);    // results in [[Berlin, LosAngeles, Beijing], [Santiago, Capetown]]
+```
+
+### Line Options
+All options defined for [Polyline](http://leafletjs.com/reference.html#polyline) and [Path](https://leafletjs.com/reference.html#path) for can be used Leaflet.Geodesic.
+
+The most important options are:
 
 Option  | Type | Default | Description
--------------: | ------------- | ------------- | :-------------
-`steps`  | `Number` | `10` | Defines how many intermediate points are generated along the path. More steps mean a smoother path but more resources.
-`color`  | `String` | `blue` | Stroke color.
-`dash`  | `Number` | `1` | Use a number between 0..1 to create a dashed line. The given number represents the percentage of the actual dash between each intermediate point (`0.5` means the line is drawn half the length) defined by `steps`. See example below.
-`wrap`  | `Boolean` | `true` | Wrap line at map border (date line). Set to 'false' if you want lines to cross the dateline (experimental, see noWrap-example on how to use)
+---|---|---|---
+`color` |	`String` | "#3388ff" | Stroke color
+`weight` | `Number` | 3 | Stroke width in pixels
+`opacity` | `Number` | 1.0 | Stroke opacity (0=transparent, 1=opaque)
+`steps` | `Number` | 3 | Level of detail (vertices = 1+2**(steps+1)) for the geodesic line. More steps result in a smoother line. Range: 0..8
+`wrap` | `Boolean` | true | Wrap geodesic line at antimeridian. Set to `false`, to draw a line over the antimeridian. See [no-wrap demo](https://blog.cyclemap.link/Leaflet.Geodesic/nowrap-interactive.html) for example.
 
-All options of Leaflet's [Polyline](http://leafletjs.com/reference.html#polyline) can be used as well.
+Example:
 
-### Tutorial
-You need to add the plugin in your html file **after** the leaflet file
-
-```html
-<script src="leaflet.js"></script>
-<script src="Leaflet.Geodesic.js"></script>
+```Javascript
+const Berlin = new L.LatLng(52.5, 13.35);
+const LosAngeles = new L.LatLng(33.82, -118.38);
+const options = {
+    weight: 20,
+    opacity: 0.5,
+    color: 'red',
+};
+const geodesic = new L.Geodesic([Berlin, LosAngeles], options).addTo(map);
 ```
 
+![lineoptions](docs/img/lineoptions.png)
 
-This code creates an empty Geodesic object:
-```JavaScript
-var Geodesic = L.geodesic([], {
-	weight: 7,
-	opacity: 0.5,
-	color: 'blue',
-	steps: 50
-}).addTo(map);
+## Geodesic Circles
+
+Circles can be added with another class called `L.GeodesicCircle` as follows:
+
+```Javascript
+const Seattle = new L.LatLng(47.56, -122.33);
+const geodesiccircle = new L.GeodesicCircle(Seattle, {
+    radius: 3000*1000,  // 3000km in meters
+}).addTo(map);   
 ```
 
-To actually draw a line, we need to create and set the coordinates of our geodesic line:
-```JavaScript
-var berlin = new L.LatLng(52.5, 13.35);
-var losangeles = new L.LatLng(33.82, -118.38);
+![circle](docs/img/circle.png)
 
-Geodesic.setLatLngs([[berlin, losangeles]]);
+The geometry of a circle can be updated with the following methods:
+
+- `setLatLng(latlng: L.LatLngExpression)` - set a new center
+- `setRadius(radius: number)` - update the radius
+
+Handling of circles crossing the antimeridian (wrapping) is not yet supported.
+
+### Circle Options
+
+Option  | Type | Default | Description
+---|---|---|---
+`radius` | `Number` | 1000*1000 | Radius in **meters**
+`steps` | `Number` | 24 | Number of segments that are used to approximate the circle.
+`fill` | `boolean` | true | Draws a filled circle.
+`color` |	`String` | "#3388ff" | Stroke color
+`weight` | `Number` | 3 | Stroke width in pixels
+`opacity` | `Number` | 1.0 | Stroke opacity (0=transparent, 1=opaque)
+
+Please refer to the options for [Polyline](http://leafletjs.com/reference.html#polyline) and [Path](https://leafletjs.com/reference.html#path) for additional settings.
+
+## Statistics
+
+The `L.Geodesic` and `L.GeodesicCircle`-class provide a `statistics`-Object with the following properties:
+
+Property | Type | Description
+---|---|---
+`totalDistance` |	`Number` | The total distance of all geodesic lines in meters. (Circumfence for `L.GeodesicCircle`)
+`distanceArray` | `Number[]` | The distance for each separate linestring in meters
+`points` | `Number` | Number of points that were given on creation or with `setLatLngs()`
+`vertices` | `Number` | Number of vertices of all geodesic lines that were calculated
+
+## Distance Calculation
+
+The `L.Geodesic` provides a `distance`-function to calculate the precise distance between two points:
+
+```Javascript
+const Berlin = new L.LatLng(52.5, 13.35);
+const Beijing = new L.LatLng(39.92, 116.39);
+
+const line = new L.Geodesic();
+const distance = line.distance(Berlin, Beijing);
+console.log(`${Math.floor(distance/1000)} km`) // prints: 7379 km
 ```
 
-A geodesic line can have more than two Points:
-```JavaScript
-var berlin = new L.LatLng(52.5, 13.35);
-var losangeles = new L.LatLng(33.82, -118.38);
-var capetown = new L.LatLng(-33.91, 18.41);
+The `L.GeodesicCircle`-class provides a `distanceTo`-function to calculate the distance between the current center and any given point:
 
-Geodesic.setLatLngs([[berlin, losangeles, capetown]]);
+```Javascript
+const Berlin = new L.LatLng(52.5, 13.35);
+const Beijing = new L.LatLng(39.92, 116.39);
+
+const circle = new L.GeodesicCircle(Berlin);
+const distance = circle.distanceTo(Beijing);
+console.log(`${Math.floor(distance/1000)} km`) // prints: 7379 km
 ```
 
-You can also draw independent lines within one geodesic object:
-```JavaScript
-var berlin = new L.LatLng(52.5, 13.35);
-var losangeles = new L.LatLng(33.82, -118.38);
-var capetown = new L.LatLng(-33.91, 18.41);
-var sydney = new L.LatLng(-33.91, 151.08);
+## Scientific background
 
-Geodesic.setLatLngs([[berlin, losangeles], [capetown, sydney]]);
-```
-
-### Great circles
-Draw a circle around a given position.
-``` JavaScript
-L.Geodesic.createCircle(<LatLng> center, <Number> radius)
-```
-Parameter | Type | Description
--------------: | ------------- | :-------------
-`center`  | `L.LatLng` | geographic position/center of the circle
-`radius`  | `Number` | Radius of the circle in **metres**
-
-#### Example
-``` JavaScript
-var Geodesic = L.geodesic([], {steps:40}).addTo(map);
-Geodesic.createCircle(new L.LatLng(61.07, -114.35), 1500000);
-```
-<img src="example/greatcircle.png" alt="Great Circle Screenshot" />
-
-see also: [Great Circle Demo](http://www.thasler.com/leaflet.geodesic/example/circle.html)
-
-### Create geodesic objects from GeoJSON
-Draw geodesic lines given in GeoJSON-format. `LineString`, `MultiLineString` and `Polygon` geometries are supported.
-
-* Refer to [GeoJSON-Specification (RFC7946)](https://tools.ietf.org/html/rfc7946) for details.
-* Draw your own GeoJSON-Objects at [geojson.io](http://geojson.io).
-
-Parameter | Type | Description
--------------: | ------------- | :-------------
-`geojson`  | `Object` | GeoJSON-Object to draw as geodesic-lines.
-
-```JavaScript
-var geojsonExample =
-{
-	"type": "FeatureCollection",
-	"features": [
-		{
-			"type": "Feature",
-			"properties": {},
-			"geometry": {
-				"type": "LineString",
-				"coordinates": [
-					[-40.07, -6.66],
-					[16.17, -69.16],
-					[46.75, -20.30]
-				]
-			}
-		}
-	]
-}
-
-var geodesicLayer = L.geodesic([], {
-	weight: 7,
-	opacity: 0.5,
-	color: '#ff33ee',
-	steps: 50,
-	wrap: false,
-}).addTo(map)
-
-geodesicLayer.geoJson(geojsonExample)
-```
-<img src="example/geojson.png" alt="geoJSON Screenshot" />
-
-## FAQ
-#### Q: How can I use a custom icon with leaflet?
-see http://jsfiddle.net/h1r3yagb/
-
-#### Q: I want to draw only part (eg. halfway) of a geodesic line between two places?
-see http://jsfiddle.net/h1r3yagb/20/
-
-#### Q: How can I draw *filled* great circles?
-in options set: `fill: true`. See also Leaflet's [Path API reference](http://leafletjs.com/reference-1.3.0.html#path)
-```JavaScript
-var Geodesic3 = L.geodesic([], {
-	weight:3, opacity:1, fill: true,
-	color: 'green',	steps: 40}).addTo(map);
-Geodesic3.createCircle(calgary, 2000000);
-```
-
-## Branches
-
-### ES5 branch
-See https://github.com/henrythasler/Leaflet.Geodesic/issues/31
-Also includes a minified version
-
-### Legacy Branch for Leaflet v0.7.7 and before
-Please look at the branch [legacy](https://github.com/henrythasler/Leaflet.Geodesic/tree/legacy) to use Leaflet.Geodesic with Leaflet v0.7.7 and before. The master and testing branches can only be used with Leaflet v1.0.0+.
-
-## License
-GPL V3
+All calculations are based on the [WGS84-Ellipsoid](https://en.wikipedia.org/wiki/World_Geodetic_System#WGS84) (EPSG:4326) using [Vincenty's formulae](https://en.wikipedia.org/wiki/Vincenty%27s_formulae). This method leads to very precise calculations but may fail for some corner-cases (e.g. [Antipodes](https://en.wikipedia.org/wiki/Antipodes)). I use some workarounds to mitigate these convergence errors. This may lead to reduced precision (a.k.a. slightly wrong results) in these cases.  This is good enough for a web mapping application but you shouldn't plan a space mission based on this data. OMG, this section has just become a disclaimer...

@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+        }
+
+        .info {
+            padding: 6px 8px;
+            font: 14px/16px Arial, Helvetica, sans-serif;
+            background: white;
+            background: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+        }
+
+        .info h4 {
+            margin: 0 0 5px;
+            font: 22px/24px Arial, Helvetica, sans-serif;
+            color: #777;
+        }
+    </style>
+    <title>Leaflet.Geodesic demo</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css"
+        integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
+        crossorigin="" />
+
+    <script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js"
+        integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og=="
+        crossorigin=""></script>
+        
+    <script src="https://cdn.jsdelivr.net/npm/leaflet.geodesic"></script>
+
+</head>
+
+<body>
+    <div id="map"></div>
+    <div id='distance' class='distance-container'></div>
+
+    <script type="text/javascript">
+
+        // create map; set center and zoom
+        var map = L.map('map').setView([40, -180], 3);
+
+        // add a basic layer
+        L.tileLayer('https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
+            maxZoom: 15,
+            noWrap: false,
+            attribution: 'Map tiles by Carto, under CC BY 3.0. Data by OpenStreetMap, under ODbL.'
+        }).addTo(map);
+
+        // add an info-container to show some statistics about the geodesic line
+        var info = L.control();
+        info.onAdd = function (map) {
+            this._div = L.DomUtil.create('div', 'info');
+            return this._div;
+        };
+        info.addTo(map);
+
+        // update the statistics with current values
+        info.update = function (stats) {
+            const totalDistance = (stats.totalDistance ? (stats.totalDistance>10000)?(stats.totalDistance/1000).toFixed(0)+' km':(stats.totalDistance).toFixed(0)+' m' : 'invalid')
+            this._div.innerHTML = '<h4>Statistics</h4><b>totalDistance</b><br/>' + totalDistance + 
+                '<br/><br/><b>Points</b><br/>' + stats.points + 
+                '<br/><br/><b>Vertices</b><br/>' + stats.vertices;
+        };
+
+        // define some places
+        var Beijing = new L.LatLng(39.92, 116.39 - 360);    // shifted over antimeridian for consistent display
+        var LosAngeles = new L.LatLng(33.82, -118.38);
+
+        // create a marker at each place
+        var A = L.marker(Beijing, { draggable: true }).addTo(map);
+        var B = L.marker(LosAngeles, { draggable: true }).addTo(map).bindPopup("Drag me.").openPopup();
+
+        // draw a geodesic line between these places
+        const geodesic = L.geodesic([A.getLatLng(), B.getLatLng()], {
+            weight: 7,
+            opacity: 0.5,
+            color: 'red',
+            wrap: false,
+            steps: 4
+        }).addTo(map);
+
+        info.update(geodesic.statistics);
+
+        // update the geodesic line when one of the markers is dragged
+		A.on('drag', (e) => {
+            geodesic.setLatLngs([e.latlng, B.getLatLng()])
+            info.update(geodesic.statistics);
+        });
+		B.on('drag', (e) => {
+            geodesic.setLatLngs([A.getLatLng(), e.latlng])
+            info.update(geodesic.statistics);
+        });
+
+    </script>
+</body>
+
+</html>
